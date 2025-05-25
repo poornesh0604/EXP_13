@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Small Finance Corporation{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="user" class="me-2"></i>
+                        {{ title }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row g-3">
+                            <!-- Name Field -->
+                            <div class="col-md-6">
+                                <label for="{{ form.name.id }}" class="form-label">
+                                    {{ form.name.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                                {% if form.name.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Email Field -->
+                            <div class="col-md-6">
+                                <label for="{{ form.email.id }}" class="form-label">
+                                    {{ form.email.label.text }}
+                                </label>
+                                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                                {% if form.email.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.email.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="mail" class="me-1"></i>
+                                    Optional - for email communications
+                                </div>
+                            </div>
+                            
+                            <!-- Phone Field -->
+                            <div class="col-md-6">
+                                <label for="{{ form.phone.id }}" class="form-label">
+                                    {{ form.phone.label.text }}
+                                </label>
+                                {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else "")) }}
+                                {% if form.phone.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.phone.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="phone" class="me-1"></i>
+                                    Primary contact number
+                                </div>
+                            </div>
+                            
+                            <!-- Address Field -->
+                            <div class="col-12">
+                                <label for="{{ form.address.id }}" class="form-label">
+                                    {{ form.address.label.text }}
+                                </label>
+                                {{ form.address(class="form-control" + (" is-invalid" if form.address.errors else ""), rows="3") }}
+                                {% if form.address.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.address.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="map-pin" class="me-1"></i>
+                                    Complete residential address
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row mt-4">
+                            <div class="col">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ url_for('customers') }}" class="btn btn-outline-secondary">
+                                        <i data-feather="arrow-left" class="me-2"></i>
+                                        Back to Customers
+                                    </a>
+                                    <div>
+                                        {% if customer %}
+                                            <button type="submit" class="btn btn-primary">
+                                                <i data-feather="save" class="me-2"></i>
+                                                Update Customer
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-success">
+                                                <i data-feather="user-plus" class="me-2"></i>
+                                                Create Customer
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Customer Information (if editing) -->
+            {% if customer %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="info" class="me-2"></i>
+                        Customer Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Customer ID:</strong> #{{ customer.customer_id }}<br>
+                            <strong>Created:</strong> {{ customer.created_at.strftime('%B %d, %Y at %I:%M %p') if customer.created_at else 'N/A' }}<br>
+                            <strong>Total Loans:</strong> {{ customer.loans|length }}
+                        </div>
+                        <div class="col-md-6">
+                            {% if customer.loans %}
+                                <strong>Recent Loans:</strong><br>
+                                {% for loan in customer.loans[:3] %}
+                                    <small class="text-muted">
+                                        Loan #{{ loan.loan_id }} - ₹{{ "{:,.0f}".format(loan.loan_amount) }} 
+                                        <span class="badge badge-sm bg-{{ 'success' if loan.status == 'Approved' else 'warning' if loan.status == 'Pending' else 'danger' if loan.status == 'Rejected' else 'secondary' }}">{{ loan.status }}</span>
+                                    </small><br>
+                                {% endfor %}
+                                {% if customer.loans|length > 3 %}
+                                    <small class="text-muted">... and {{ customer.loans|length - 3 }} more</small>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Form validation and enhancement
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const nameField = document.getElementById('{{ form.name.id }}');
+    const emailField = document.getElementById('{{ form.email.id }}');
+    const phoneField = document.getElementById('{{ form.phone.id }}');
+
+    // Real-time validation feedback
+    nameField.addEventListener('blur', function() {
+        if (this.value.trim().length < 2) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        }
+    });
+
+    // Email validation
+    emailField.addEventListener('blur', function() {
+        if (this.value && !isValidEmail(this.value)) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+            if (this.value) this.classList.add('is-valid');
+        }
+    });
+
+    // Phone number formatting
+    phoneField.addEventListener('input', function() {
+        // Remove non-numeric characters except + and -
+        this.value = this.value.replace(/[^\d+\-\s]/g, '');
+    });
+
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    // Form submission enhancement
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+    });
+});
+</script>
+{% endblock %}

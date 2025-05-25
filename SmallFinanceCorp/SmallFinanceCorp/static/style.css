@@ -1,0 +1,350 @@
+/* Small Finance Corporation - Custom Styles */
+
+/* Root Variables - Using Bootstrap's CSS custom properties */
+:root {
+  --finance-primary: var(--bs-primary);
+  --finance-success: var(--bs-success);
+  --finance-warning: var(--bs-warning);
+  --finance-danger: var(--bs-danger);
+  --finance-info: var(--bs-info);
+  --finance-dark: var(--bs-dark);
+  --finance-light: var(--bs-light);
+}
+
+/* Global Enhancements */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+}
+
+/* Enhanced Card Styles */
+.card {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Financial Data Display */
+.financial-amount {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+/* Status Badges */
+.badge {
+  font-size: 0.85em;
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+}
+
+/* Table Enhancements */
+.table th {
+  background-color: var(--bs-light);
+  border-bottom: 2px solid var(--bs-border-color);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--bs-light);
+}
+
+/* Button Enhancements */
+.btn {
+  font-weight: 500;
+  border-radius: 0.375rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Form Enhancements */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.is-valid {
+  border-color: var(--bs-success);
+}
+
+.is-invalid {
+  border-color: var(--bs-danger);
+}
+
+/* Navigation Enhancements */
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.nav-link {
+  font-weight: 500;
+  transition: color 0.15s ease-in-out;
+}
+
+/* Alert Enhancements */
+.alert {
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+/* Loading States */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Chart Container */
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+
+/* Modal Enhancements */
+.modal-content {
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  background-color: var(--bs-light);
+  border-bottom: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+/* Progress Bar Enhancements */
+.progress {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.progress-bar {
+  transition: width 0.6s ease;
+}
+
+/* Dashboard Specific Styles */
+.dashboard-card {
+  border-left: 4px solid;
+  transition: transform 0.2s ease-in-out;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+}
+
+.dashboard-card.primary {
+  border-left-color: var(--bs-primary);
+}
+
+.dashboard-card.success {
+  border-left-color: var(--bs-success);
+}
+
+.dashboard-card.warning {
+  border-left-color: var(--bs-warning);
+}
+
+.dashboard-card.info {
+  border-left-color: var(--bs-info);
+}
+
+/* EMI Calculator Styles */
+.emi-preview {
+  background: linear-gradient(135deg, var(--bs-light) 0%, var(--bs-white) 100%);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+/* Customer/Loan Cards */
+.customer-card,
+.loan-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.customer-card:hover,
+.loan-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Payment Status Indicators */
+.payment-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.payment-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.payment-indicator.success {
+  background-color: var(--bs-success);
+}
+
+.payment-indicator.warning {
+  background-color: var(--bs-warning);
+}
+
+.payment-indicator.danger {
+  background-color: var(--bs-danger);
+}
+
+/* Print Styles */
+@media print {
+  .navbar,
+  .btn,
+  .modal,
+  .no-print {
+    display: none !important;
+  }
+  
+  .card {
+    box-shadow: none;
+    border: 1px solid #dee2e6;
+  }
+  
+  .table {
+    font-size: 0.875rem;
+  }
+  
+  .page-break {
+    page-break-before: always;
+  }
+}
+
+/* Mobile Responsive Enhancements */
+@media (max-width: 768px) {
+  .display-6 {
+    font-size: 2rem;
+  }
+  
+  .btn-group .btn {
+    margin-bottom: 0.25rem;
+  }
+  
+  .table-responsive {
+    border-radius: 0.5rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+/* Dark Mode Specific Adjustments */
+[data-bs-theme="dark"] .table th {
+  background-color: var(--bs-gray-800);
+}
+
+[data-bs-theme="dark"] .emi-preview {
+  background: linear-gradient(135deg, var(--bs-gray-800) 0%, var(--bs-gray-700) 100%);
+}
+
+[data-bs-theme="dark"] .modal-header {
+  background-color: var(--bs-gray-800);
+}
+
+/* Utility Classes */
+.text-financial {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
+.border-financial {
+  border-width: 2px !important;
+}
+
+.rounded-financial {
+  border-radius: 0.5rem !important;
+}
+
+.shadow-financial {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Animation Classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+/* Focus States for Accessibility */
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .card {
+    border-width: 2px;
+  }
+  
+  .btn {
+    border-width: 2px;
+  }
+  
+  .table th,
+  .table td {
+    border-width: 2px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

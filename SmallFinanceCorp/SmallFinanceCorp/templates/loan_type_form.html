@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Small Finance Corporation{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="tag" class="me-2"></i>
+                        {{ title }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.type_name.id }}" class="form-label">
+                                {{ form.type_name.label.text }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.type_name(class="form-control" + (" is-invalid" if form.type_name.errors else "")) }}
+                            {% if form.type_name.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.type_name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <i data-feather="info" class="me-1"></i>
+                                Examples: Personal Loan, Gold Loan, Vehicle Loan, Home Loan
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.interest_rate.id }}" class="form-label">
+                                {{ form.interest_rate.label.text }} <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                {{ form.interest_rate(class="form-control" + (" is-invalid" if form.interest_rate.errors else ""), step="0.01", min="0", max="100") }}
+                                <span class="input-group-text">% per annum</span>
+                            </div>
+                            {% if form.interest_rate.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.interest_rate.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <i data-feather="percent" class="me-1"></i>
+                                Annual interest rate for this loan type
+                            </div>
+                        </div>
+
+                        <!-- Interest Rate Preview -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i data-feather="calculator" class="me-2"></i>
+                                    EMI Preview
+                                </h6>
+                                <div id="emiPreview">
+                                    <p class="text-muted mb-0">Enter interest rate to see EMI examples</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('loan_types') }}" class="btn btn-outline-secondary">
+                                <i data-feather="arrow-left" class="me-2"></i>
+                                Back to Loan Types
+                            </a>
+                            <div>
+                                {% if loan_type %}
+                                    <button type="submit" class="btn btn-primary">
+                                        <i data-feather="save" class="me-2"></i>
+                                        Update Loan Type
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-success">
+                                        <i data-feather="plus" class="me-2"></i>
+                                        Create Loan Type
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Loan Type Information (if editing) -->
+            {% if loan_type %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="info" class="me-2"></i>
+                        Loan Type Statistics
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Type ID:</strong> #{{ loan_type.loan_type_id }}<br>
+                            <strong>Total Applications:</strong> {{ loan_type.loans|length }}<br>
+                            <strong>Approved Loans:</strong> {{ loan_type.loans|selectattr("status", "equalto", "Approved")|list|length }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Pending Applications:</strong> {{ loan_type.loans|selectattr("status", "equalto", "Pending")|list|length }}<br>
+                            <strong>Rejected Applications:</strong> {{ loan_type.loans|selectattr("status", "equalto", "Rejected")|list|length }}<br>
+                            {% set total_amount = loan_type.loans|selectattr("status", "equalto", "Approved")|sum(attribute='loan_amount') %}
+                            <strong>Total Disbursed:</strong> ₹{{ "{:,.0f}".format(total_amount) if total_amount else 0 }}
+                        </div>
+                    </div>
+                    
+                    {% if loan_type.loans %}
+                    <hr>
+                    <h6>Recent Loans</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Loan ID</th>
+                                    <th>Customer</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for loan in loan_type.loans[:5] %}
+                                <tr>
+                                    <td>#{{ loan.loan_id }}</td>
+                                    <td>{{ loan.customer.name }}</td>
+                                    <td>₹{{ "{:,.0f}".format(loan.loan_amount) }}</td>
+                                    <td>
+                                        <span class="badge badge-sm bg-{{ 'success' if loan.status == 'Approved' else 'warning' if loan.status == 'Pending' else 'danger' if loan.status == 'Rejected' else 'secondary' }}">
+                                            {{ loan.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if loan_type.loans|length > 5 %}
+                        <p class="text-muted mb-0">... and {{ loan_type.loans|length - 5 }} more loans</p>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Common Loan Types Reference -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="help-circle" class="me-2"></i>
+                        Common Loan Types & Interest Rates
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Secured Loans</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Gold Loan:</strong> 12% - 18%</li>
+                                <li><strong>Vehicle Loan:</strong> 10% - 15%</li>
+                                <li><strong>Home Loan:</strong> 8% - 12%</li>
+                                <li><strong>Property Loan:</strong> 10% - 14%</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-warning">Unsecured Loans</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Personal Loan:</strong> 15% - 25%</li>
+                                <li><strong>Business Loan:</strong> 12% - 20%</li>
+                                <li><strong>Education Loan:</strong> 10% - 16%</li>
+                                <li><strong>Medical Loan:</strong> 14% - 22%</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <small class="text-muted">
+                        <i data-feather="info" class="me-1"></i>
+                        These are typical market rates. Adjust based on your risk assessment and business model.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const interestRateInput = document.getElementById('{{ form.interest_rate.id }}');
+    const emiPreview = document.getElementById('emiPreview');
+
+    function updateEMIPreview() {
+        const rate = parseFloat(interestRateInput.value);
+        
+        if (rate && rate > 0) {
+            const examples = [
+                { amount: 100000, duration: 12 },
+                { amount: 500000, duration: 24 },
+                { amount: 1000000, duration: 36 }
+            ];
+            
+            let html = '<div class="row text-center">';
+            
+            examples.forEach((example, index) => {
+                const emi = calculateEMI(example.amount, rate, example.duration);
+                html += `
+                    <div class="col-4">
+                        <h6 class="text-primary">₹${emi.toLocaleString()}</h6>
+                        <small class="text-muted">
+                            ₹${(example.amount/1000)}K for ${example.duration}m
+                        </small>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            html += `<hr><small class="text-muted"><i data-feather="info" class="me-1"></i>Monthly EMI examples at ${rate}% interest rate</small>`;
+            
+            emiPreview.innerHTML = html;
+            feather.replace();
+        } else {
+            emiPreview.innerHTML = '<p class="text-muted mb-0">Enter interest rate to see EMI examples</p>';
+        }
+    }
+
+    function calculateEMI(principal, rate, months) {
+        const monthlyRate = rate / 1200;
+        if (monthlyRate === 0) return Math.round(principal / months);
+        
+        const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) / 
+                    (Math.pow(1 + monthlyRate, months) - 1);
+        return Math.round(emi);
+    }
+
+    // Add event listener
+    interestRateInput.addEventListener('input', updateEMIPreview);
+
+    // Initial calculation
+    updateEMIPreview();
+
+    // Form validation
+    const form = document.querySelector('form');
+    const typeNameInput = document.getElementById('{{ form.type_name.id }}');
+
+    typeNameInput.addEventListener('blur', function() {
+        if (this.value.trim().length < 2) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        }
+    });
+
+    interestRateInput.addEventListener('blur', function() {
+        const value = parseFloat(this.value);
+        if (isNaN(value) || value <= 0 || value > 100) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        }
+    });
+
+    // Form submission enhancement
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+    });
+});
+</script>
+{% endblock %}

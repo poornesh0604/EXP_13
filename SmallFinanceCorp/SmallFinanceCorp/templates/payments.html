@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Payments - Small Finance Corporation{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 fw-bold mb-0">Payments</h1>
+            <p class="text-muted">Track loan repayments and payment history</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('new_payment') }}" class="btn btn-primary">
+                <i data-feather="dollar-sign" class="me-2"></i>
+                Record New Payment
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('payments') }}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <select name="loan_id" class="form-select">
+                            <option value="">All Loans</option>
+                            {% for loan in loans %}
+                                <option value="{{ loan.loan_id }}" {{ 'selected' if selected_loan_id == loan.loan_id }}>
+                                    Loan #{{ loan.loan_id }} - {{ loan.customer.name }} (₹{{ "{:,.0f}".format(loan.loan_amount) }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="date" class="form-control" name="date_from" placeholder="From Date">
+                    </div>
+                    <div class="col-md-2">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i data-feather="filter" class="me-1"></i>Filter
+                            </button>
+                            {% if selected_loan_id %}
+                            <a href="{{ url_for('payments') }}" class="btn btn-outline-secondary">
+                                <i data-feather="x" class="me-1"></i>Clear
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payments Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i data-feather="list" class="me-2"></i>
+                Payment History ({{ payments|length }} payments)
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if payments %}
+                <!-- Summary Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Total Payments</h6>
+                                <h4>₹{{ "{:,.2f}".format(payments|sum(attribute='amount_paid')) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Average Payment</h6>
+                                <h4>₹{{ "{:,.2f}".format((payments|sum(attribute='amount_paid')) / payments|length) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Total Transactions</h6>
+                                <h4>{{ payments|length }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Payment ID</th>
+                                <th>Date</th>
+                                <th>Loan Details</th>
+                                <th>Customer</th>
+                                <th>Amount Paid</th>
+                                <th>Loan Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payments %}
+                            <tr>
+                                <td>
+                                    <strong>#{{ payment.payment_id }}</strong>
+                                </td>
+                                <td>
+                                    {% if payment.payment_date %}
+                                        <strong>{{ payment.payment_date.strftime('%m/%d/%Y') }}</strong><br>
+                                        <small class="text-muted">{{ payment.payment_date.strftime('%A') }}</small>
+                                    {% else %}
+                                        <span class="text-muted">Date not set</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>Loan #{{ payment.loan.loan_id }}</strong><br>
+                                        <small class="text-muted">
+                                            {{ payment.loan.loan_type.type_name }}
+                                            ({{ payment.loan.loan_type.interest_rate }}%)
+                                        </small><br>
+                                        <small class="text-info">
+                                            ₹{{ "{:,.0f}".format(payment.loan.loan_amount) }} 
+                                            for {{ payment.loan.duration_months }}m
+                                        </small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>{{ payment.loan.customer.name }}</strong><br>
+                                        {% if payment.loan.customer.phone %}
+                                            <small class="text-muted">
+                                                <i data-feather="phone" style="width: 12px; height: 12px;"></i>
+                                                {{ payment.loan.customer.phone }}
+                                            </small>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <h6 class="text-success mb-0">₹{{ "{:,.2f}".format(payment.amount_paid) }}</h6>
+                                    {% if payment.loan.status == 'Approved' and payment.loan.loan_amount and payment.loan.duration_months %}
+                                        {% set emi = payment.loan.calculate_emi() %}
+                                        {% if payment.amount_paid >= emi %}
+                                            <small class="text-success">
+                                                <i data-feather="check-circle" style="width: 12px; height: 12px;"></i>
+                                                Full EMI
+                                            </small>
+                                        {% else %}
+                                            <small class="text-warning">
+                                                <i data-feather="alert-triangle" style="width: 12px; height: 12px;"></i>
+                                                Partial (₹{{ "{:,.0f}".format(emi - payment.amount_paid) }} short)
+                                            </small>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if payment.loan.status == 'Approved' else 'warning' if payment.loan.status == 'Pending' else 'danger' if payment.loan.status == 'Rejected' else 'secondary' }}">
+                                        {{ payment.loan.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('edit_loan', loan_id=payment.loan.loan_id) }}" 
+                                           class="btn btn-outline-primary" title="View Loan">
+                                            <i data-feather="eye"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-info" 
+                                                title="Payment Details" 
+                                                onclick="showPaymentDetails({{ payment.payment_id }})">
+                                            <i data-feather="info"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i data-feather="dollar-sign" class="text-muted mb-3" style="width: 64px; height: 64px;"></i>
+                    {% if selected_loan_id %}
+                        <h5>No payments found</h5>
+                        <p class="text-muted">No payments have been recorded for the selected loan.</p>
+                        <a href="{{ url_for('new_payment') }}" class="btn btn-primary me-2">
+                            <i data-feather="dollar-sign" class="me-2"></i>Record Payment
+                        </a>
+                        <a href="{{ url_for('payments') }}" class="btn btn-outline-secondary">
+                            <i data-feather="x" class="me-2"></i>Clear Filter
+                        </a>
+                    {% else %}
+                        <h5>No payments recorded yet</h5>
+                        <p class="text-muted">Start by recording your first loan repayment.</p>
+                        <a href="{{ url_for('new_payment') }}" class="btn btn-primary">
+                            <i data-feather="dollar-sign" class="me-2"></i>Record First Payment
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Monthly Payment Summary -->
+    {% if payments %}
+    <div class="row mt-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="calendar" class="me-2"></i>
+                        Recent Payment Activity
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% set recent_payments = payments[:10] %}
+                    <div class="row">
+                        <div class="col-md-8">
+                            <canvas id="paymentChart" height="200"></canvas>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Payment Statistics</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Largest Payment:</span>
+                                <strong>₹{{ "{:,.0f}".format(payments|max(attribute='amount_paid')|attr('amount_paid')) }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Smallest Payment:</span>
+                                <strong>₹{{ "{:,.0f}".format(payments|min(attribute='amount_paid')|attr('amount_paid')) }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>This Month:</span>
+                                <strong>{{ payments|selectattr('payment_date')|selectattr('payment_date', 'ge', (moment().startOf('month').todate() if moment else '2024-01-01'|as_datetime))|list|length }} payments</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Payment Details Modal -->
+<div class="modal fade" id="paymentDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Payment Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="paymentDetailsContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showPaymentDetails(paymentId) {
+    // Find payment data from the table
+    const payments = {{ payments | tojson }};
+    const payment = payments.find(p => p.payment_id === paymentId);
+    
+    if (payment) {
+        const modal = new bootstrap.Modal(document.getElementById('paymentDetailsModal'));
+        const content = document.getElementById('paymentDetailsContent');
+        
+        content.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Payment Information</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Payment ID:</strong></td><td>#${payment.payment_id}</td></tr>
+                        <tr><td><strong>Amount:</strong></td><td>₹${payment.amount_paid.toLocaleString()}</td></tr>
+                        <tr><td><strong>Date:</strong></td><td>${payment.payment_date || 'Not set'}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6>Loan Information</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Loan ID:</strong></td><td>#${payment.loan.loan_id}</td></tr>
+                        <tr><td><strong>Customer:</strong></td><td>${payment.loan.customer.name}</td></tr>
+                        <tr><td><strong>Loan Amount:</strong></td><td>₹${payment.loan.loan_amount.toLocaleString()}</td></tr>
+                        <tr><td><strong>Loan Type:</strong></td><td>${payment.loan.loan_type.type_name}</td></tr>
+                        <tr><td><strong>Interest Rate:</strong></td><td>${payment.loan.loan_type.interest_rate}%</td></tr>
+                    </table>
+                </div>
+            </div>
+        `;
+        
+        modal.show();
+    }
+}
+
+// Initialize payment chart if there are payments
+{% if payments %}
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('paymentChart');
+    if (ctx) {
+        const payments = {{ payments[:10] | tojson }};
+        const labels = payments.map(p => p.payment_date || 'Unknown');
+        const data = payments.map(p => p.amount_paid);
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Payment Amount',
+                    data: data,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

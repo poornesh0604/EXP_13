@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}Loans - Small Finance Corporation{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 fw-bold mb-0">Loans</h1>
+            <p class="text-muted">Manage loan applications and approvals</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('new_loan') }}" class="btn btn-primary">
+                <i data-feather="plus-circle" class="me-2"></i>
+                New Loan Application
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('loans') }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <select name="status" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="Pending" {{ 'selected' if status_filter == 'Pending' }}>Pending</option>
+                            <option value="Approved" {{ 'selected' if status_filter == 'Approved' }}>Approved</option>
+                            <option value="Rejected" {{ 'selected' if status_filter == 'Rejected' }}>Rejected</option>
+                            <option value="Closed" {{ 'selected' if status_filter == 'Closed' }}>Closed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="search" 
+                               placeholder="Search by customer name or loan ID..." 
+                               value="{{ search }}">
+                    </div>
+                    <div class="col-md-2">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i data-feather="search" class="me-1"></i>Filter
+                            </button>
+                            {% if status_filter or search %}
+                            <a href="{{ url_for('loans') }}" class="btn btn-outline-secondary">
+                                <i data-feather="x" class="me-1"></i>Clear
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loans Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i data-feather="credit-card" class="me-2"></i>
+                Loan Applications ({{ loans|length }} loans)
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if loans %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Loan ID</th>
+                                <th>Customer</th>
+                                <th>Loan Type</th>
+                                <th>Amount</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                                <th>Issue Date</th>
+                                <th>EMI</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loan in loans %}
+                            <tr>
+                                <td>
+                                    <strong>#{{ loan.loan_id }}</strong>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>{{ loan.customer.name }}</strong><br>
+                                        <small class="text-muted">
+                                            {% if loan.customer.phone %}
+                                                <i data-feather="phone" style="width: 12px; height: 12px;"></i>
+                                                {{ loan.customer.phone }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ loan.loan_type.type_name }}</span><br>
+                                    <small class="text-muted">{{ loan.loan_type.interest_rate }}% p.a.</small>
+                                </td>
+                                <td>
+                                    <strong>₹{{ "{:,.0f}".format(loan.loan_amount) }}</strong>
+                                </td>
+                                <td>
+                                    {{ loan.duration_months }} months
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if loan.status == 'Approved' else 'warning' if loan.status == 'Pending' else 'danger' if loan.status == 'Rejected' else 'secondary' }}">
+                                        {{ loan.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if loan.issue_date %}
+                                        {{ loan.issue_date.strftime('%m/%d/%Y') }}
+                                    {% else %}
+                                        <span class="text-muted">Not issued</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if loan.status == 'Approved' and loan.loan_amount and loan.duration_months %}
+                                        <strong>₹{{ "{:,.0f}".format(loan.calculate_emi()) }}</strong><br>
+                                        <small class="text-muted">per month</small>
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('edit_loan', loan_id=loan.loan_id) }}" 
+                                           class="btn btn-outline-primary" title="Edit Loan">
+                                            <i data-feather="edit-2"></i>
+                                        </a>
+                                        {% if loan.status == 'Approved' %}
+                                        <a href="{{ url_for('payments', loan_id=loan.loan_id) }}" 
+                                           class="btn btn-outline-success" title="View Payments">
+                                            <i data-feather="dollar-sign"></i>
+                                        </a>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-outline-info" 
+                                                title="Loan Details" 
+                                                onclick="showLoanDetails({{ loan.loan_id }})">
+                                            <i data-feather="info"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i data-feather="credit-card" class="text-muted mb-3" style="width: 64px; height: 64px;"></i>
+                    {% if status_filter or search %}
+                        <h5>No loans found</h5>
+                        <p class="text-muted">No loans match your filter criteria.</p>
+                        <a href="{{ url_for('loans') }}" class="btn btn-outline-primary">
+                            <i data-feather="x" class="me-2"></i>Clear Filters
+                        </a>
+                    {% else %}
+                        <h5>No loans yet</h5>
+                        <p class="text-muted">Start by creating your first loan application.</p>
+                        <a href="{{ url_for('new_loan') }}" class="btn btn-primary">
+                            <i data-feather="plus-circle" class="me-2"></i>Create First Loan
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Status Summary -->
+    {% if loans %}
+    <div class="row mt-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="pie-chart" class="me-2"></i>
+                        Loan Status Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        {% set status_counts = {} %}
+                        {% for loan in loans %}
+                            {% if status_counts.update({loan.status: status_counts.get(loan.status, 0) + 1}) %}{% endif %}
+                        {% endfor %}
+                        
+                        {% for status, count in status_counts.items() %}
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3">
+                                <h4 class="text-{{ 'success' if status == 'Approved' else 'warning' if status == 'Pending' else 'danger' if status == 'Rejected' else 'secondary' }}">
+                                    {{ count }}
+                                </h4>
+                                <p class="mb-0 text-muted">{{ status }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Loan Details Modal -->
+<div class="modal fade" id="loanDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Loan Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="loanDetailsContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showLoanDetails(loanId) {
+    // Find loan data from the table
+    const loans = {{ loans | tojson }};
+    const loan = loans.find(l => l.loan_id === loanId);
+    
+    if (loan) {
+        const modal = new bootstrap.Modal(document.getElementById('loanDetailsModal'));
+        const content = document.getElementById('loanDetailsContent');
+        
+        const emi = loan.status === 'Approved' && loan.loan_amount && loan.duration_months ? 
+                   calculateEMI(loan.loan_amount, loan.loan_type.interest_rate, loan.duration_months) : 0;
+        
+        content.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Loan Information</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Loan ID:</strong></td><td>#${loan.loan_id}</td></tr>
+                        <tr><td><strong>Amount:</strong></td><td>₹${loan.loan_amount.toLocaleString()}</td></tr>
+                        <tr><td><strong>Duration:</strong></td><td>${loan.duration_months} months</td></tr>
+                        <tr><td><strong>Status:</strong></td><td><span class="badge bg-${getStatusClass(loan.status)}">${loan.status}</span></td></tr>
+                        <tr><td><strong>Issue Date:</strong></td><td>${loan.issue_date || 'Not issued'}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6>Customer & Loan Type</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Customer:</strong></td><td>${loan.customer.name}</td></tr>
+                        <tr><td><strong>Email:</strong></td><td>${loan.customer.email || 'N/A'}</td></tr>
+                        <tr><td><strong>Phone:</strong></td><td>${loan.customer.phone || 'N/A'}</td></tr>
+                        <tr><td><strong>Loan Type:</strong></td><td>${loan.loan_type.type_name}</td></tr>
+                        <tr><td><strong>Interest Rate:</strong></td><td>${loan.loan_type.interest_rate}% p.a.</td></tr>
+                    </table>
+                </div>
+            </div>
+            ${emi > 0 ? `
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <h6><i data-feather="calculator" class="me-2"></i>EMI Calculation</h6>
+                        <p class="mb-0">Monthly EMI: <strong>₹${emi.toLocaleString()}</strong></p>
+                        <small class="text-muted">Total payable: ₹${(emi * loan.duration_months).toLocaleString()}</small>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+        `;
+        
+        feather.replace();
+        modal.show();
+    }
+}
+
+function getStatusClass(status) {
+    switch(status) {
+        case 'Approved': return 'success';
+        case 'Pending': return 'warning';
+        case 'Rejected': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function calculateEMI(principal, rate, months) {
+    const monthlyRate = rate / 1200;
+    if (monthlyRate === 0) return principal / months;
+    
+    const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) / 
+                (Math.pow(1 + monthlyRate, months) - 1);
+    return Math.round(emi);
+}
+</script>
+{% endblock %}

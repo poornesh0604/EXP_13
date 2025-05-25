@@ -1,0 +1,594 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Small Finance Corporation{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 fw-bold mb-0">Reports & Analytics</h1>
+            <p class="text-muted">Comprehensive business insights and financial reports</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                    <i data-feather="printer" class="me-2"></i>
+                    Print Report
+                </button>
+                <button type="button" class="btn btn-outline-success" onclick="exportToCSV()">
+                    <i data-feather="download" class="me-2"></i>
+                    Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Performance Indicators -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Loan Portfolio</h6>
+                            <h4>{{ status_counts|sum(attribute='total_amount') or 0 | round(0) | int }}</h4>
+                            <small>Total Loans</small>
+                        </div>
+                        <i data-feather="briefcase" style="width: 48px; height: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Active Loans</h6>
+                            <h4>{{ status_counts|selectattr('status', 'equalto', 'Approved')|sum(attribute='count') or 0 }}</h4>
+                            <small>Approved & Active</small>
+                        </div>
+                        <i data-feather="trending-up" style="width: 48px; height: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Pending Review</h6>
+                            <h4>{{ status_counts|selectattr('status', 'equalto', 'Pending')|sum(attribute='count') or 0 }}</h4>
+                            <small>Awaiting Approval</small>
+                        </div>
+                        <i data-feather="clock" style="width: 48px; height: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Approval Rate</h6>
+                            {% set total_processed = status_counts|selectattr('status', 'in', ['Approved', 'Rejected'])|sum(attribute='count') %}
+                            {% set approved = status_counts|selectattr('status', 'equalto', 'Approved')|sum(attribute='count') %}
+                            <h4>{{ (approved / total_processed * 100) | round(1) if total_processed > 0 else 0 }}%</h4>
+                            <small>Success Rate</small>
+                        </div>
+                        <i data-feather="check-circle" style="width: 48px; height: 48px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="pie-chart" class="me-2"></i>
+                        Loan Status Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if status_counts %}
+                        <canvas id="statusChart" height="300"></canvas>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i data-feather="pie-chart" class="text-muted mb-3" style="width: 48px; height: 48px;"></i>
+                            <p class="text-muted">No loan data available for status distribution</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="bar-chart-2" class="me-2"></i>
+                        Loan Type Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if type_counts %}
+                        <canvas id="typeChart" height="300"></canvas>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i data-feather="bar-chart-2" class="text-muted mb-3" style="width: 48px; height: 48px;"></i>
+                            <p class="text-muted">No loan data available for type analysis</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Disbursement Trend -->
+    {% if monthly_disbursement %}
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="trending-up" class="me-2"></i>
+                        Monthly Disbursement Trend
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="disbursementChart" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Detailed Tables -->
+    <div class="row g-4">
+        <!-- Loan Status Breakdown -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="list" class="me-2"></i>
+                        Loan Status Breakdown
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if status_counts %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th>Count</th>
+                                        <th>Total Amount</th>
+                                        <th>Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% set total_loans = status_counts|sum(attribute='count') %}
+                                    {% for status in status_counts %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if status.status == 'Approved' else 'warning' if status.status == 'Pending' else 'danger' if status.status == 'Rejected' else 'secondary' }}">
+                                                {{ status.status }}
+                                            </span>
+                                        </td>
+                                        <td><strong>{{ status.count }}</strong></td>
+                                        <td>₹{{ "{:,.0f}".format(status.total_amount or 0) }}</td>
+                                        <td>{{ "{:.1f}".format((status.count / total_loans) * 100) if total_loans > 0 else 0 }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i data-feather="inbox" class="text-muted mb-3" style="width: 48px; height: 48px;"></i>
+                            <p class="text-muted">No loan status data available</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Loan Type Analysis -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="tag" class="me-2"></i>
+                        Loan Type Analysis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if type_counts %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Loan Type</th>
+                                        <th>Count</th>
+                                        <th>Total Amount</th>
+                                        <th>Avg. Loan Size</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for type_data in type_counts %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ type_data.type_name }}</strong>
+                                        </td>
+                                        <td>{{ type_data.count }}</td>
+                                        <td>₹{{ "{:,.0f}".format(type_data.total_amount or 0) }}</td>
+                                        <td>₹{{ "{:,.0f}".format((type_data.total_amount or 0) / type_data.count) if type_data.count > 0 else 0 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i data-feather="inbox" class="text-muted mb-3" style="width: 48px; height: 48px;"></i>
+                            <p class="text-muted">No loan type data available</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Customers -->
+    {% if top_customers %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="award" class="me-2"></i>
+                        Top Customers by Loan Amount
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Customer Name</th>
+                                    <th>Number of Loans</th>
+                                    <th>Total Loan Amount</th>
+                                    <th>Average Loan Size</th>
+                                    <th>Customer Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in top_customers %}
+                                <tr>
+                                    <td>
+                                        {% if loop.index <= 3 %}
+                                            <span class="badge bg-{{ 'warning' if loop.index == 1 else 'secondary' }}">
+                                                {{ loop.index }}
+                                            </span>
+                                        {% else %}
+                                            {{ loop.index }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ customer.name }}</strong>
+                                        {% if loop.index == 1 %}
+                                            <i data-feather="crown" class="text-warning ms-2" style="width: 16px; height: 16px;"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ customer.loan_count }}</td>
+                                    <td>₹{{ "{:,.0f}".format(customer.total_amount) }}</td>
+                                    <td>₹{{ "{:,.0f}".format(customer.total_amount / customer.loan_count) }}</td>
+                                    <td>
+                                        {% if customer.total_amount >= 1000000 %}
+                                            <span class="badge bg-success">Premium</span>
+                                        {% elif customer.total_amount >= 500000 %}
+                                            <span class="badge bg-info">High Value</span>
+                                        {% elif customer.total_amount >= 100000 %}
+                                            <span class="badge bg-warning">Standard</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">New</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Business Insights -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="lightbulb" class="me-2"></i>
+                        Business Insights & Recommendations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-primary">
+                                        <i data-feather="trending-up" class="me-2"></i>
+                                        Growth Opportunities
+                                    </h6>
+                                    <ul class="list-unstyled small">
+                                        {% if status_counts|selectattr('status', 'equalto', 'Pending')|sum(attribute='count') > 5 %}
+                                            <li>• High pending applications - consider faster processing</li>
+                                        {% endif %}
+                                        {% if type_counts %}
+                                            {% set most_popular = type_counts|max(attribute='count') %}
+                                            <li>• {{ most_popular.type_name }} is most popular - expand marketing</li>
+                                        {% endif %}
+                                        <li>• Consider digital application processes</li>
+                                        <li>• Implement customer referral programs</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-warning">
+                                        <i data-feather="alert-triangle" class="me-2"></i>
+                                        Risk Management
+                                    </h6>
+                                    <ul class="list-unstyled small">
+                                        {% if status_counts|selectattr('status', 'equalto', 'Rejected')|sum(attribute='count') > 0 %}
+                                            <li>• Monitor rejection rates closely</li>
+                                        {% endif %}
+                                        <li>• Regular EMI payment tracking needed</li>
+                                        <li>• Implement early warning systems</li>
+                                        <li>• Consider diversifying loan portfolio</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-success">
+                                        <i data-feather="target" class="me-2"></i>
+                                        Performance Metrics
+                                    </h6>
+                                    <ul class="list-unstyled small">
+                                        {% set approval_rate = (status_counts|selectattr('status', 'equalto', 'Approved')|sum(attribute='count') / status_counts|sum(attribute='count') * 100) if status_counts|sum(attribute='count') > 0 else 0 %}
+                                        <li>• Approval rate: {{ "{:.1f}".format(approval_rate) }}%</li>
+                                        {% if top_customers %}
+                                            <li>• Top customer value: ₹{{ "{:,.0f}".format(top_customers[0].total_amount) }}</li>
+                                        {% endif %}
+                                        <li>• Focus on customer retention</li>
+                                        <li>• Track monthly growth targets</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Loan Status Distribution Chart
+{% if status_counts %}
+document.addEventListener('DOMContentLoaded', function() {
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx) {
+        const statusData = {{ status_counts | tojson }};
+        const labels = statusData.map(item => item.status);
+        const counts = statusData.map(item => item.count);
+        const colors = labels.map(status => {
+            switch(status) {
+                case 'Approved': return '#28a745';
+                case 'Pending': return '#ffc107';
+                case 'Rejected': return '#dc3545';
+                case 'Closed': return '#6c757d';
+                default: return '#17a2b8';
+            }
+        });
+        
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: colors,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+});
+{% endif %}
+
+// Loan Type Performance Chart
+{% if type_counts %}
+document.addEventListener('DOMContentLoaded', function() {
+    const typeCtx = document.getElementById('typeChart');
+    if (typeCtx) {
+        const typeData = {{ type_counts | tojson }};
+        const labels = typeData.map(item => item.type_name);
+        const amounts = typeData.map(item => item.total_amount || 0);
+        const counts = typeData.map(item => item.count);
+        
+        new Chart(typeCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Amount (₹)',
+                    data: amounts,
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    yAxisID: 'y'
+                }, {
+                    label: 'Number of Loans',
+                    data: counts,
+                    backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1,
+                    type: 'line',
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Total Amount (₹)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Number of Loans'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                    }
+                }
+            }
+        });
+    }
+});
+{% endif %}
+
+// Monthly Disbursement Trend
+{% if monthly_disbursement %}
+document.addEventListener('DOMContentLoaded', function() {
+    const disbursementCtx = document.getElementById('disbursementChart');
+    if (disbursementCtx) {
+        const disbursementData = {{ monthly_disbursement | tojson }};
+        const labels = disbursementData.map(item => item.month);
+        const amounts = disbursementData.map(item => item.amount || 0);
+        
+        new Chart(disbursementCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Monthly Disbursement',
+                    data: amounts,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Disbursement Amount (₹)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+{% endif %}
+
+// Export to CSV function
+function exportToCSV() {
+    // Create CSV content
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    // Add headers
+    csvContent += "Report Type,Value,Count,Amount\n";
+    
+    // Add status data
+    {% if status_counts %}
+    const statusData = {{ status_counts | tojson }};
+    statusData.forEach(item => {
+        csvContent += `Status,${item.status},${item.count},${item.total_amount || 0}\n`;
+    });
+    {% endif %}
+    
+    // Add type data
+    {% if type_counts %}
+    const typeData = {{ type_counts | tojson }};
+    typeData.forEach(item => {
+        csvContent += `Loan Type,${item.type_name},${item.count},${item.total_amount || 0}\n`;
+    });
+    {% endif %}
+    
+    // Create download link
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `finance_report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Small Finance Corporation{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="dollar-sign" class="me-2"></i>
+                        {{ title }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row g-3">
+                            <!-- Loan Selection -->
+                            <div class="col-12">
+                                <label for="{{ form.loan_id.id }}" class="form-label">
+                                    {{ form.loan_id.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.loan_id(class="form-select" + (" is-invalid" if form.loan_id.errors else ""), id="loanSelect") }}
+                                {% if form.loan_id.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.loan_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="info" class="me-1"></i>
+                                    Only approved loans are available for payment recording
+                                </div>
+                            </div>
+                            
+                            <!-- Payment Date -->
+                            <div class="col-md-6">
+                                <label for="{{ form.payment_date.id }}" class="form-label">
+                                    {{ form.payment_date.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.payment_date(class="form-control" + (" is-invalid" if form.payment_date.errors else "")) }}
+                                {% if form.payment_date.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.payment_date.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="calendar" class="me-1"></i>
+                                    Date when payment was received
+                                </div>
+                            </div>
+                            
+                            <!-- Amount Paid -->
+                            <div class="col-md-6">
+                                <label for="{{ form.amount_paid.id }}" class="form-label">
+                                    {{ form.amount_paid.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    {{ form.amount_paid(class="form-control" + (" is-invalid" if form.amount_paid.errors else ""), step="0.01") }}
+                                </div>
+                                {% if form.amount_paid.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.amount_paid.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="dollar-sign" class="me-1"></i>
+                                    Actual amount received from customer
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Loan Details Preview -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i data-feather="info" class="me-2"></i>
+                                            Loan Details
+                                        </h6>
+                                        <div id="loanDetails" class="text-muted">
+                                            Select a loan to view details and EMI information
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Amount Buttons -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card bg-info bg-opacity-10">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i data-feather="zap" class="me-2"></i>
+                                            Quick Amount Selection
+                                        </h6>
+                                        <div id="quickAmounts" class="d-flex flex-wrap gap-2">
+                                            <span class="text-muted">Select a loan to see quick amount options</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row mt-4">
+                            <div class="col">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ url_for('payments') }}" class="btn btn-outline-secondary">
+                                        <i data-feather="arrow-left" class="me-2"></i>
+                                        Back to Payments
+                                    </a>
+                                    <div>
+                                        <button type="submit" class="btn btn-success">
+                                            <i data-feather="check" class="me-2"></i>
+                                            Record Payment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Payment Guidelines -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="help-circle" class="me-2"></i>
+                        Payment Recording Guidelines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">✓ Best Practices</h6>
+                            <ul class="list-unstyled">
+                                <li><i data-feather="check" class="me-2 text-success" style="width: 16px;"></i>Record payments on the actual date received</li>
+                                <li><i data-feather="check" class="me-2 text-success" style="width: 16px;"></i>Verify amount before recording</li>
+                                <li><i data-feather="check" class="me-2 text-success" style="width: 16px;"></i>Keep payment receipts for reference</li>
+                                <li><i data-feather="check" class="me-2 text-success" style="width: 16px;"></i>Record partial payments as well</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-warning">⚠ Important Notes</h6>
+                            <ul class="list-unstyled">
+                                <li><i data-feather="alert-triangle" class="me-2 text-warning" style="width: 16px;"></i>Payments can be recorded for approved loans only</li>
+                                <li><i data-feather="alert-triangle" class="me-2 text-warning" style="width: 16px;"></i>Double-check loan ID and customer name</li>
+                                <li><i data-feather="alert-triangle" class="me-2 text-warning" style="width: 16px;"></i>Record exact amount received</li>
+                                <li><i data-feather="alert-triangle" class="me-2 text-warning" style="width: 16px;"></i>Contact admin for payment corrections</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loanSelect = document.getElementById('loanSelect');
+    const amountInput = document.getElementById('{{ form.amount_paid.id }}');
+    const loanDetails = document.getElementById('loanDetails');
+    const quickAmounts = document.getElementById('quickAmounts');
+
+    // Loan data (would normally come from API)
+    const loans = {
+        {% for choice in form.loan_id.choices if choice[0] != 0 %}
+            {{ choice[0] }}: {
+                id: {{ choice[0] }},
+                text: "{{ choice[1] }}"
+            }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    function updateLoanDetails() {
+        const selectedLoanId = parseInt(loanSelect.value);
+        
+        if (selectedLoanId && loans[selectedLoanId]) {
+            // In a real application, you would fetch loan details via API
+            // For now, we'll parse the loan text to extract basic info
+            const loanText = loans[selectedLoanId].text;
+            
+            // Extract basic info from the loan option text
+            const loanMatch = loanText.match(/Loan #(\d+) - (.+) \(₹([\d,]+)\)/);
+            
+            if (loanMatch) {
+                const [, loanId, customerName, amount] = loanMatch;
+                
+                loanDetails.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Loan ID:</strong> #${loanId}<br>
+                            <strong>Customer:</strong> ${customerName}<br>
+                            <strong>Loan Amount:</strong> ₹${amount}
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center">
+                                <span class="text-muted">Fetching EMI details...</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Fetch EMI details via API
+                fetch(`/api/loan/${selectedLoanId}/emi`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const emi = data.emi;
+                            loanDetails.innerHTML = `
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Loan ID:</strong> #${loanId}<br>
+                                        <strong>Customer:</strong> ${customerName}<br>
+                                        <strong>Loan Amount:</strong> ₹${amount}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="text-center">
+                                            <h6 class="text-primary">Monthly EMI</h6>
+                                            <h5 class="text-success">₹${emi.toLocaleString()}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+
+                            // Update quick amount buttons
+                            quickAmounts.innerHTML = `
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="setAmount(${emi})">
+                                    Full EMI (₹${emi.toLocaleString()})
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="setAmount(${Math.round(emi / 2)})">
+                                    Half EMI (₹${Math.round(emi / 2).toLocaleString()})
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="setAmount(${emi * 2})">
+                                    Double EMI (₹${(emi * 2).toLocaleString()})
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="setAmount(1000)">
+                                    ₹1,000
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="setAmount(5000)">
+                                    ₹5,000
+                                </button>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching EMI:', error);
+                    });
+            }
+        } else {
+            loanDetails.innerHTML = '<span class="text-muted">Select a loan to view details and EMI information</span>';
+            quickAmounts.innerHTML = '<span class="text-muted">Select a loan to see quick amount options</span>';
+        }
+    }
+
+    // Set amount function for quick buttons
+    window.setAmount = function(amount) {
+        amountInput.value = amount.toFixed(2);
+        amountInput.focus();
+        
+        // Add visual feedback
+        amountInput.classList.add('border-success');
+        setTimeout(() => {
+            amountInput.classList.remove('border-success');
+        }, 1000);
+    };
+
+    // Event listeners
+    loanSelect.addEventListener('change', updateLoanDetails);
+
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('{{ form.payment_date.id }}').value = today;
+
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Recording...';
+    });
+
+    // Amount formatting
+    amountInput.addEventListener('blur', function() {
+        if (this.value) {
+            const value = parseFloat(this.value);
+            if (!isNaN(value)) {
+                this.value = value.toFixed(2);
+            }
+        }
+    });
+
+    // Real-time validation
+    amountInput.addEventListener('input', function() {
+        const value = parseFloat(this.value);
+        if (value <= 0) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        }
+    });
+
+    // Initial load
+    updateLoanDetails();
+});
+</script>
+{% endblock %}

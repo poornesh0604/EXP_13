@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Small Finance Corporation{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="credit-card" class="me-2"></i>
+                        {{ title }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row g-3">
+                            <!-- Customer Selection -->
+                            <div class="col-md-6">
+                                <label for="{{ form.customer_id.id }}" class="form-label">
+                                    {{ form.customer_id.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.customer_id(class="form-select" + (" is-invalid" if form.customer_id.errors else "")) }}
+                                {% if form.customer_id.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.customer_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="users" class="me-1"></i>
+                                    Select the customer for this loan
+                                </div>
+                            </div>
+                            
+                            <!-- Loan Type Selection -->
+                            <div class="col-md-6">
+                                <label for="{{ form.loan_type_id.id }}" class="form-label">
+                                    {{ form.loan_type_id.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.loan_type_id(class="form-select" + (" is-invalid" if form.loan_type_id.errors else "")) }}
+                                {% if form.loan_type_id.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.loan_type_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="tag" class="me-1"></i>
+                                    Interest rate will be applied automatically
+                                </div>
+                            </div>
+                            
+                            <!-- Loan Amount -->
+                            <div class="col-md-6">
+                                <label for="{{ form.loan_amount.id }}" class="form-label">
+                                    {{ form.loan_amount.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    {{ form.loan_amount(class="form-control" + (" is-invalid" if form.loan_amount.errors else ""), step="0.01") }}
+                                </div>
+                                {% if form.loan_amount.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.loan_amount.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="dollar-sign" class="me-1"></i>
+                                    Principal loan amount
+                                </div>
+                            </div>
+                            
+                            <!-- Duration -->
+                            <div class="col-md-6">
+                                <label for="{{ form.duration_months.id }}" class="form-label">
+                                    {{ form.duration_months.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    {{ form.duration_months(class="form-control" + (" is-invalid" if form.duration_months.errors else "")) }}
+                                    <span class="input-group-text">months</span>
+                                </div>
+                                {% if form.duration_months.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.duration_months.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="calendar" class="me-1"></i>
+                                    Loan repayment period
+                                </div>
+                            </div>
+                            
+                            <!-- Status -->
+                            <div class="col-md-6">
+                                <label for="{{ form.status.id }}" class="form-label">
+                                    {{ form.status.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.status(class="form-select" + (" is-invalid" if form.status.errors else "")) }}
+                                {% if form.status.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.status.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="check-circle" class="me-1"></i>
+                                    Current application status
+                                </div>
+                            </div>
+                            
+                            <!-- Issue Date -->
+                            <div class="col-md-6">
+                                <label for="{{ form.issue_date.id }}" class="form-label">
+                                    {{ form.issue_date.label.text }}
+                                </label>
+                                {{ form.issue_date(class="form-control" + (" is-invalid" if form.issue_date.errors else "")) }}
+                                {% if form.issue_date.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.issue_date.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i data-feather="calendar" class="me-1"></i>
+                                    Date when loan was/will be disbursed
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- EMI Preview -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i data-feather="calculator" class="me-2"></i>
+                                            EMI Calculation Preview
+                                        </h6>
+                                        <div id="emiPreview" class="text-muted">
+                                            Select loan type, amount, and duration to see EMI calculation
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row mt-4">
+                            <div class="col">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ url_for('loans') }}" class="btn btn-outline-secondary">
+                                        <i data-feather="arrow-left" class="me-2"></i>
+                                        Back to Loans
+                                    </a>
+                                    <div>
+                                        {% if loan %}
+                                            <button type="submit" class="btn btn-primary">
+                                                <i data-feather="save" class="me-2"></i>
+                                                Update Loan
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-success">
+                                                <i data-feather="plus-circle" class="me-2"></i>
+                                                Create Loan
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Loan Information (if editing) -->
+            {% if loan %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="info" class="me-2"></i>
+                        Loan Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Loan ID:</strong> #{{ loan.loan_id }}<br>
+                            <strong>Customer:</strong> {{ loan.customer.name }}<br>
+                            <strong>Current Status:</strong> 
+                            <span class="badge bg-{{ 'success' if loan.status == 'Approved' else 'warning' if loan.status == 'Pending' else 'danger' if loan.status == 'Rejected' else 'secondary' }}">
+                                {{ loan.status }}
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            {% if loan.status == 'Approved' and loan.loan_amount and loan.duration_months %}
+                                <strong>Current EMI:</strong> ₹{{ "{:,.0f}".format(loan.calculate_emi()) }}<br>
+                                <strong>Total Payable:</strong> ₹{{ "{:,.0f}".format(loan.calculate_emi() * loan.duration_months) }}<br>
+                            {% endif %}
+                            <strong>Total Payments:</strong> ₹{{ "{:,.0f}".format(loan.repayments|sum(attribute='amount_paid')) if loan.repayments else 0 }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loanTypeSelect = document.getElementById('{{ form.loan_type_id.id }}');
+    const loanAmountInput = document.getElementById('{{ form.loan_amount.id }}');
+    const durationInput = document.getElementById('{{ form.duration_months.id }}');
+    const emiPreview = document.getElementById('emiPreview');
+
+    function updateEMIPreview() {
+        const loanTypeText = loanTypeSelect.options[loanTypeSelect.selectedIndex].text;
+        const amount = parseFloat(loanAmountInput.value);
+        const duration = parseInt(durationInput.value);
+
+        if (loanTypeSelect.value && amount && duration) {
+            // Extract interest rate from the option text
+            const rateMatch = loanTypeText.match(/\((\d+\.?\d*)%\)/);
+            if (rateMatch) {
+                const rate = parseFloat(rateMatch[1]);
+                const emi = calculateEMI(amount, rate, duration);
+                const totalPayable = emi * duration;
+                const totalInterest = totalPayable - amount;
+
+                emiPreview.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Monthly EMI:</strong><br>
+                            <span class="h5 text-success">₹${emi.toLocaleString()}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Total Payable:</strong><br>
+                            <span class="h6 text-info">₹${totalPayable.toLocaleString()}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Total Interest:</strong><br>
+                            <span class="h6 text-warning">₹${totalInterest.toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <hr>
+                    <small class="text-muted">
+                        <i data-feather="info" class="me-1"></i>
+                        Interest Rate: ${rate}% per annum | Duration: ${duration} months
+                    </small>
+                `;
+                feather.replace();
+            }
+        } else {
+            emiPreview.innerHTML = '<span class="text-muted">Select loan type, amount, and duration to see EMI calculation</span>';
+        }
+    }
+
+    function calculateEMI(principal, rate, months) {
+        const monthlyRate = rate / 1200;
+        if (monthlyRate === 0) return Math.round(principal / months);
+        
+        const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) / 
+                    (Math.pow(1 + monthlyRate, months) - 1);
+        return Math.round(emi);
+    }
+
+    // Add event listeners
+    loanTypeSelect.addEventListener('change', updateEMIPreview);
+    loanAmountInput.addEventListener('input', updateEMIPreview);
+    durationInput.addEventListener('input', updateEMIPreview);
+
+    // Initial calculation
+    updateEMIPreview();
+
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+    });
+
+    // Amount formatting
+    loanAmountInput.addEventListener('blur', function() {
+        if (this.value) {
+            const value = parseFloat(this.value);
+            if (!isNaN(value)) {
+                this.value = value.toFixed(2);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

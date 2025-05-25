@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+
+{% block title %}EMI Schedule - Small Finance Corporation{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 fw-bold mb-0">EMI Schedule</h1>
+            <p class="text-muted">View and manage EMI calculations for loans</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <form method="POST" action="{{ url_for('calculate_gold_emi') }}" class="d-inline">
+                <button type="submit" class="btn btn-warning" onclick="return confirm('This will recalculate EMI for all Gold Loans. Continue?')">
+                    <i data-feather="calculator" class="me-2"></i>
+                    Calculate Gold Loan EMI
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('emi_schedule') }}">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <select name="customer_id" class="form-select">
+                            <option value="">All Customers</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.customer_id }}" {{ 'selected' if selected_customer_id == customer.customer_id }}>
+                                    {{ customer.name }} ({{ customer.loans|length }} loans)
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i data-feather="filter" class="me-1"></i>Filter
+                            </button>
+                            {% if selected_customer_id %}
+                            <a href="{{ url_for('emi_schedule') }}" class="btn btn-outline-secondary">
+                                <i data-feather="x" class="me-1"></i>Clear
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EMI Schedule Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i data-feather="calendar" class="me-2"></i>
+                EMI Calculations ({{ schedules|length }} schedules)
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if schedules %}
+                <!-- Summary Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Total Schedules</h6>
+                                <h4>{{ schedules|length }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Average EMI</h6>
+                                <h4>₹{{ "{:,.0f}".format((schedules|sum(attribute='emi_amount')) / schedules|length) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Total EMI Amount</h6>
+                                <h4>₹{{ "{:,.0f}".format(schedules|sum(attribute='emi_amount')) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Unique Customers</h6>
+                                <h4>{{ schedules|map(attribute='customer_id')|unique|list|length }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Schedule ID</th>
+                                <th>Customer</th>
+                                <th>Loan Details</th>
+                                <th>Loan Type</th>
+                                <th>Loan Amount</th>
+                                <th>EMI Amount</th>
+                                <th>Duration</th>
+                                <th>Total Payable</th>
+                                <th>Interest</th>
+                                <th>Calculated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for schedule in schedules %}
+                            <tr>
+                                <td>
+                                    <strong>#{{ schedule.schedule_id }}</strong>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>{{ schedule.customer.name }}</strong><br>
+                                        {% if schedule.customer.phone %}
+                                            <small class="text-muted">
+                                                <i data-feather="phone" style="width: 12px; height: 12px;"></i>
+                                                {{ schedule.customer.phone }}
+                                            </small>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>Loan #{{ schedule.loan.loan_id }}</strong><br>
+                                        <span class="badge bg-{{ 'success' if schedule.loan.status == 'Approved' else 'warning' if schedule.loan.status == 'Pending' else 'danger' if schedule.loan.status == 'Rejected' else 'secondary' }}">
+                                            {{ schedule.loan.status }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ schedule.loan.loan_type.type_name }}</span><br>
+                                    <small class="text-muted">{{ schedule.loan.loan_type.interest_rate }}% p.a.</small>
+                                </td>
+                                <td>
+                                    <strong>₹{{ "{:,.0f}".format(schedule.loan.loan_amount) }}</strong>
+                                </td>
+                                <td>
+                                    <h6 class="text-success mb-0">₹{{ "{:,.0f}".format(schedule.emi_amount) }}</h6>
+                                    <small class="text-muted">per month</small>
+                                </td>
+                                <td>
+                                    {{ schedule.loan.duration_months }} months<br>
+                                    <small class="text-muted">
+                                        {% if schedule.loan.duration_months <= 12 %}
+                                            Short term
+                                        {% elif schedule.loan.duration_months <= 36 %}
+                                            Medium term
+                                        {% else %}
+                                            Long term
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% set total_payable = schedule.emi_amount * schedule.loan.duration_months %}
+                                    <strong>₹{{ "{:,.0f}".format(total_payable) }}</strong>
+                                </td>
+                                <td>
+                                    {% set interest = (schedule.emi_amount * schedule.loan.duration_months) - schedule.loan.loan_amount %}
+                                    <span class="text-warning">₹{{ "{:,.0f}".format(interest) }}</span><br>
+                                    <small class="text-muted">
+                                        {{ "{:.1f}".format((interest / schedule.loan.loan_amount) * 100) }}%
+                                    </small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ schedule.calculated_at.strftime('%m/%d/%Y') if schedule.calculated_at else 'N/A' }}<br>
+                                        {{ schedule.calculated_at.strftime('%I:%M %p') if schedule.calculated_at else '' }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('edit_loan', loan_id=schedule.loan.loan_id) }}" 
+                                           class="btn btn-outline-primary" title="View Loan">
+                                            <i data-feather="eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('payments', loan_id=schedule.loan.loan_id) }}" 
+                                           class="btn btn-outline-success" title="View Payments">
+                                            <i data-feather="dollar-sign"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-info" 
+                                                title="EMI Details" 
+                                                onclick="showEMIDetails({{ schedule.schedule_id }})">
+                                            <i data-feather="calculator"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i data-feather="calendar" class="text-muted mb-3" style="width: 64px; height: 64px;"></i>
+                    {% if selected_customer_id %}
+                        <h5>No EMI schedules found</h5>
+                        <p class="text-muted">No EMI calculations found for the selected customer.</p>
+                        <a href="{{ url_for('emi_schedule') }}" class="btn btn-outline-secondary">
+                            <i data-feather="x" class="me-2"></i>Clear Filter
+                        </a>
+                    {% else %}
+                        <h5>No EMI schedules calculated yet</h5>
+                        <p class="text-muted">EMI schedules are automatically created when loans are approved.</p>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <a href="{{ url_for('loans') }}" class="btn btn-primary">
+                                <i data-feather="credit-card" class="me-2"></i>View Loans
+                            </a>
+                            <form method="POST" action="{{ url_for('calculate_gold_emi') }}" class="d-inline">
+                                <button type="submit" class="btn btn-warning">
+                                    <i data-feather="calculator" class="me-2"></i>
+                                    Calculate Gold Loan EMI
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- EMI Analytics -->
+    {% if schedules %}
+    <div class="row mt-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="bar-chart-2" class="me-2"></i>
+                        EMI Distribution by Loan Type
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="emiChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="pie-chart" class="me-2"></i>
+                        EMI Statistics
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% set emi_amounts = schedules|map(attribute='emi_amount')|list %}
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Highest EMI:</span>
+                        <strong>₹{{ "{:,.0f}".format(emi_amounts|max) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Lowest EMI:</span>
+                        <strong>₹{{ "{:,.0f}".format(emi_amounts|min) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Median EMI:</span>
+                        <strong>₹{{ "{:,.0f}".format(emi_amounts|sort|list[emi_amounts|length // 2]) }}</strong>
+                    </div>
+                    <hr>
+                    <h6>Loan Type Breakdown</h6>
+                    {% set loan_types = schedules|groupby('loan.loan_type.type_name') %}
+                    {% for type_name, type_schedules in loan_types %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ type_name }}:</span>
+                        <strong>{{ type_schedules|list|length }}</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- EMI Details Modal -->
+<div class="modal fade" id="emiDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">EMI Calculation Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="emiDetailsContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showEMIDetails(scheduleId) {
+    const schedules = {{ schedules | tojson }};
+    const schedule = schedules.find(s => s.schedule_id === scheduleId);
+    
+    if (schedule) {
+        const modal = new bootstrap.Modal(document.getElementById('emiDetailsModal'));
+        const content = document.getElementById('emiDetailsContent');
+        
+        const totalPayable = schedule.emi_amount * schedule.loan.duration_months;
+        const totalInterest = totalPayable - schedule.loan.loan_amount;
+        const interestPercentage = (totalInterest / schedule.loan.loan_amount) * 100;
+        
+        content.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Loan Information</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Loan ID:</strong></td><td>#${schedule.loan.loan_id}</td></tr>
+                        <tr><td><strong>Customer:</strong></td><td>${schedule.customer.name}</td></tr>
+                        <tr><td><strong>Loan Type:</strong></td><td>${schedule.loan.loan_type.type_name}</td></tr>
+                        <tr><td><strong>Principal Amount:</strong></td><td>₹${schedule.loan.loan_amount.toLocaleString()}</td></tr>
+                        <tr><td><strong>Interest Rate:</strong></td><td>${schedule.loan.loan_type.interest_rate}% per annum</td></tr>
+                        <tr><td><strong>Duration:</strong></td><td>${schedule.loan.duration_months} months</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6>EMI Calculation</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Monthly EMI:</strong></td><td class="text-success">₹${schedule.emi_amount.toLocaleString()}</td></tr>
+                        <tr><td><strong>Total Payable:</strong></td><td>₹${totalPayable.toLocaleString()}</td></tr>
+                        <tr><td><strong>Total Interest:</strong></td><td class="text-warning">₹${totalInterest.toLocaleString()}</td></tr>
+                        <tr><td><strong>Interest %:</strong></td><td>${interestPercentage.toFixed(1)}% of principal</td></tr>
+                        <tr><td><strong>Calculated On:</strong></td><td>${schedule.calculated_at || 'N/A'}</td></tr>
+                    </table>
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-12">
+                    <h6>Payment Breakdown</h6>
+                    <div class="progress mb-2" style="height: 20px;">
+                        <div class="progress-bar bg-success" style="width: ${(schedule.loan.loan_amount / totalPayable) * 100}%">
+                            Principal
+                        </div>
+                        <div class="progress-bar bg-warning" style="width: ${(totalInterest / totalPayable) * 100}%">
+                            Interest
+                        </div>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <small class="text-muted">Principal: ${((schedule.loan.loan_amount / totalPayable) * 100).toFixed(1)}%</small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Interest: ${((totalInterest / totalPayable) * 100).toFixed(1)}%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        modal.show();
+    }
+}
+
+// Initialize EMI chart if there are schedules
+{% if schedules %}
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('emiChart');
+    if (ctx) {
+        // Group schedules by loan type
+        const schedules = {{ schedules | tojson }};
+        const loanTypes = {};
+        
+        schedules.forEach(schedule => {
+            const type = schedule.loan.loan_type.type_name;
+            if (!loanTypes[type]) {
+                loanTypes[type] = {
+                    count: 0,
+                    totalEMI: 0,
+                    avgEMI: 0
+                };
+            }
+            loanTypes[type].count++;
+            loanTypes[type].totalEMI += schedule.emi_amount;
+        });
+        
+        // Calculate averages
+        Object.keys(loanTypes).forEach(type => {
+            loanTypes[type].avgEMI = loanTypes[type].totalEMI / loanTypes[type].count;
+        });
+        
+        const labels = Object.keys(loanTypes);
+        const avgEMIData = labels.map(type => loanTypes[type].avgEMI);
+        const countData = labels.map(type => loanTypes[type].count);
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Average EMI Amount',
+                    data: avgEMIData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    yAxisID: 'y'
+                }, {
+                    label: 'Number of Loans',
+                    data: countData,
+                    backgroundColor: 'rgba(255, 206, 86, 0.8)',
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    borderWidth: 1,
+                    type: 'line',
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Average EMI Amount (₹)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Number of Loans'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                    }
+                }
+            }
+        });
+    }
+});
+{% endif %}
+</script>
+{% endblock %}
